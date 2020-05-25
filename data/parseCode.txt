@@ -1,0 +1,62 @@
+import numpy as np
+import scipy.io.mmread
+
+import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import h5py
+import allel; print('scikit-allel', allel.__version__)
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.linear_model import LinearRegression
+import cartopy.crs as ccrs
+import scipy.stats as stats
+cenderFolder = 'C:\\Users\\Owner\\Google Drive\\Eyal_Rotem_google_drive\\cendrCode\\'
+from scipy.signal import savgol_filter
+from sklearn import linear_model
+from scipy import stats
+import numpy as np
+from numpy.polynomial.polynomial import polyfit
+
+
+
+allReadCounts = scipy.io.mmread('D:\\cendr\\cengenData\\GSE136049_gene_by_cell_count_matrix.txt')
+print(allReadCounts.get_shape())
+cell_annotations = pd.read_csv('D://cendr//cengenData/GSE136049_cell_annotations_edited.csv')
+gene_aanotations = pd.read_csv('D:\\cendr\\cengenData\\GSE136049_gene_annotations.csv')
+len(gene_aanotations)
+len(cell_annotations)
+gpcrRows = []
+geneNames = []
+for i in allGPCRs:
+    thisRow = np.where(gene_aanotations['gene_id']==i)[0]
+    if len(thisRow)>0:
+        gpcrRows.append(thisRow[0])
+        geneNames.append(i)
+       
+print(len(allGPCRs)-len(gpcrRows))
+type(allReadCounts)
+slicedMat = allReadCounts.tocsr()[gpcrRows,:]
+slicedMat.shape
+uniqueTypes = pd.unique(cell_annotations['Neuron.type'])
+typeNum = []
+typeInds = {}
+summedTable = np.zeros((len(gpcrRows),len(uniqueTypes)))
+fractionTable = np.zeros((len(gpcrRows),len(uniqueTypes)))
+for t in uniqueTypes:
+    thisCols = np.where(cell_annotations['Neuron.type']==t)[0]
+    typeInds[t] = thisCols
+    typeNum.append(len(thisCols))
+
+for row in range(len(gpcrRows)):
+    thisRow = slicedMat[row,:]
+    for col,t in enumerate(uniqueTypes):
+        thisTypeInds = typeInds[t]
+        thisSubRow = thisRow[:,thisTypeInds]
+        summedTable[row,col] = np.sum(thisSubRow)
+        fractionTable[row,col] = len(np.nonzero(thisSubRow!=0)[0])/typeNum[col]
+        
+fractionTableDF = pd.DataFrame(data = fractionTable,index = geneNames,columns=uniqueTypes)
+fractionTableDF.head(10)
+fractionTableDF.to_csv(cenderFolder+'GPCRsInCengen.csv',sep='\t')
